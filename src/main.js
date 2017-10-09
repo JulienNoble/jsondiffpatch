@@ -1,10 +1,9 @@
-
 var environment = require('./environment');
 
 var DiffPatcher = require('./diffpatcher').DiffPatcher;
 exports.DiffPatcher = DiffPatcher;
 
-exports.create = function(options){
+exports.create = function(options) {
   return new DiffPatcher(options);
 };
 
@@ -47,18 +46,18 @@ exports.clone = function() {
   return defaultInstance.clone.apply(defaultInstance, arguments);
 };
 
-
+var pretendingNotToRequire = require;
 if (environment.isBrowser) {
   exports.homepage = '{{package-homepage}}';
   exports.version = '{{package-version}}';
 } else {
   var packageInfoModuleName = '../package.json';
-  var packageInfo = require(packageInfoModuleName);
+  var packageInfo = pretendingNotToRequire(packageInfoModuleName);
   exports.homepage = packageInfo.homepage;
   exports.version = packageInfo.version;
 
   var formatterModuleName = './formatters';
-  var formatters = require(formatterModuleName);
+  var formatters = pretendingNotToRequire(formatterModuleName);
   exports.formatters = formatters;
   // shortcut for console
   exports.console = formatters.console;

@@ -3,6 +3,7 @@ var TEXT_DIFF = 2;
 var DEFAULT_MIN_LENGTH = 60;
 var cachedDiffPatch = null;
 
+var pretendingNotToRequire = require;
 var getDiffMatchPatch = function(required) {
   /*jshint camelcase: false */
 
@@ -10,12 +11,16 @@ var getDiffMatchPatch = function(required) {
     var instance;
     if (typeof diff_match_patch !== 'undefined') {
       // already loaded, probably a browser
-      instance = typeof diff_match_patch === 'function' ?
-        new diff_match_patch() : new diff_match_patch.diff_match_patch();
+      instance =
+        typeof diff_match_patch === 'function'
+          ? new diff_match_patch()
+          : new diff_match_patch.diff_match_patch();
     } else if (typeof require === 'function') {
       try {
         var dmpModuleName = 'diff_match_patch_uncompressed';
-        var dmp = require('../../public/external/' + dmpModuleName);
+        var dmp = pretendingNotToRequire(
+          '../../public/external/' + dmpModuleName,
+        );
         instance = new dmp.diff_match_patch();
       } catch (err) {
         instance = null;
@@ -34,7 +39,10 @@ var getDiffMatchPatch = function(required) {
         return instance.patch_toText(instance.patch_make(txt1, txt2));
       },
       patch: function(txt1, patch) {
-        var results = instance.patch_apply(instance.patch_fromText(patch), txt1);
+        var results = instance.patch_apply(
+          instance.patch_fromText(patch),
+          txt1,
+        );
         for (var i = 0; i < results[1].length; i++) {
           if (!results[1][i]) {
             var error = new Error('text patch failed');
@@ -42,7 +50,7 @@ var getDiffMatchPatch = function(required) {
           }
         }
         return results[0];
-      }
+      },
     };
   }
   return cachedDiffPatch;
@@ -52,10 +60,12 @@ var diffFilter = function textsDiffFilter(context) {
   if (context.leftType !== 'string') {
     return;
   }
-  var minLength = (context.options && context.options.textDiff &&
-    context.options.textDiff.minLength) || DEFAULT_MIN_LENGTH;
-  if (context.left.length < minLength ||
-    context.right.length < minLength) {
+  var minLength =
+    (context.options &&
+      context.options.textDiff &&
+      context.options.textDiff.minLength) ||
+    DEFAULT_MIN_LENGTH;
+  if (context.left.length < minLength || context.right.length < minLength) {
     context.setResult([context.left, context.right]).exit();
     return;
   }
@@ -86,9 +96,16 @@ var patchFilter = function textsPatchFilter(context) {
 patchFilter.filterName = 'texts';
 
 var textDeltaReverse = function(delta) {
-  var i, l, lines, line, lineTmp, header = null,
+  var i,
+    l,
+    lines,
+    line,
+    lineTmp,
+    header = null,
     headerRegex = /^@@ +\-(\d+),(\d+) +\+(\d+),(\d+) +@@$/,
-    lineHeader, lineAdd, lineRemove;
+    lineHeader,
+    lineAdd,
+    lineRemove;
   lines = delta.split('\n');
   for (i = 0, l = lines.length; i < l; i++) {
     line = lines[i];
@@ -100,7 +117,16 @@ var textDeltaReverse = function(delta) {
       lineRemove = null;
 
       // fix header
-      lines[lineHeader] = '@@ -' + header[3] + ',' + header[4] + ' +' + header[1] + ',' + header[2] + ' @@';
+      lines[lineHeader] =
+        '@@ -' +
+        header[3] +
+        ',' +
+        header[4] +
+        ' +' +
+        header[1] +
+        ',' +
+        header[2] +
+        ' @@';
     } else if (lineStart === '+') {
       lineAdd = i;
       lines[i] = '-' + lines[i].slice(1);
